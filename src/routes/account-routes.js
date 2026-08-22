@@ -8,19 +8,19 @@ export const accountRouter = Router();
 accountRouter.use(requireAuth);
 
 // GET /api/accounts - retrieve accounts (optional categoryId filter)
-accountRouter.get('/', (req, res) => {
+accountRouter.get('/', async (req, res) => {
   const { categoryId } = req.query;
   if (typeof categoryId === 'string' && categoryId.trim() !== '') {
-    const accounts = accountsRepo.getByCategoryId(categoryId.trim());
+    const accounts = await accountsRepo.getByCategoryId(categoryId.trim());
     return res.json(accounts);
   }
 
-  const accounts = accountsRepo.getAll();
+  const accounts = await accountsRepo.getAll();
   res.json(accounts);
 });
 
 // POST /api/accounts - create account credential
-accountRouter.post('/', (req, res) => {
+accountRouter.post('/', async (req, res) => {
   const { email, password, categoryId, notes } = req.body || {};
 
   if (typeof email !== 'string' || email.trim() === '' || email.trim().length > 255) {
@@ -35,7 +35,7 @@ accountRouter.post('/', (req, res) => {
     return res.status(400).json({ error: 'Category ID is required' });
   }
 
-  const category = categoriesRepo.getById(categoryId.trim());
+  const category = await categoriesRepo.getById(categoryId.trim());
   if (!category) {
     return res.status(400).json({ error: 'Category does not exist' });
   }
@@ -48,21 +48,21 @@ accountRouter.post('/', (req, res) => {
     formattedNotes = notes;
   }
 
-  const created = accountsRepo.create({
+  const created = await accountsRepo.create({
     category_id: categoryId.trim(),
     email: email.trim(),
     password,
     notes: formattedNotes,
   });
 
-  const fullAccount = accountsRepo.getById(created.id);
+  const fullAccount = await accountsRepo.getById(created.id);
   res.status(201).json(fullAccount || created);
 });
 
 // PUT /api/accounts/:id - update account
-accountRouter.put('/:id', (req, res) => {
+accountRouter.put('/:id', async (req, res) => {
   const { id } = req.params;
-  const existing = accountsRepo.getById(id);
+  const existing = await accountsRepo.getById(id);
   if (!existing) {
     return res.status(404).json({ error: 'Account not found' });
   }
@@ -88,7 +88,7 @@ accountRouter.put('/:id', (req, res) => {
     if (typeof categoryId !== 'string' || categoryId.trim() === '') {
       return res.status(400).json({ error: 'Category ID cannot be empty' });
     }
-    const category = categoriesRepo.getById(categoryId.trim());
+    const category = await categoriesRepo.getById(categoryId.trim());
     if (!category) {
       return res.status(400).json({ error: 'Category does not exist' });
     }
@@ -102,14 +102,14 @@ accountRouter.put('/:id', (req, res) => {
     updates.notes = notes;
   }
 
-  const updated = accountsRepo.update(id, updates);
+  const updated = await accountsRepo.update(id, updates);
   res.json(updated);
 });
 
 // DELETE /api/accounts/:id - delete account
-accountRouter.delete('/:id', (req, res) => {
+accountRouter.delete('/:id', async (req, res) => {
   const { id } = req.params;
-  const deleted = accountsRepo.delete(id);
+  const deleted = await accountsRepo.delete(id);
   if (!deleted) {
     return res.status(404).json({ error: 'Account not found' });
   }

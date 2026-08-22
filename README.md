@@ -35,6 +35,11 @@ SESSION_SECRET=a_long_random_session_secret_key
 PORT=3000
 HOST=0.0.0.0
 DB_PATH=data/account-manager.sqlite
+
+# Optional: For persistent cloud storage on Vercel / Cloud deployments
+# Get free cloud SQLite from https://turso.tech
+TURSO_DATABASE_URL=libsql://your-db-name.turso.io
+TURSO_AUTH_TOKEN=your_turso_auth_token
 ```
 
 ### 3. Install & Run

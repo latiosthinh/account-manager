@@ -145,7 +145,7 @@ describe('Category API integration test suite', () => {
     assert.equal(notFoundDelRes.status, 404);
 
     // 4. Create account under Discord category -> deletion fails with 409
-    accountsRepo.create({
+    await accountsRepo.create({
       category_id: discordCat.id,
       email: 'user@discord.com',
       password: 'password123',

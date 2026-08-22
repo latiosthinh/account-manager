@@ -21,6 +21,12 @@ export const config = {
   },
   maxFailedLogins: 5,
   lockoutWindowMs: 15 * 60 * 1000,
+  get dbUrl() {
+    return process.env.TURSO_DATABASE_URL || process.env.DATABASE_URL || '';
+  },
+  get dbAuthToken() {
+    return process.env.TURSO_AUTH_TOKEN || '';
+  },
   get dbPath() {
     return process.env.DB_PATH || (process.env.VERCEL ? '/tmp/account-manager.sqlite' : 'data/account-manager.sqlite');
   },

@@ -22,7 +22,7 @@ describe('Account API integration test suite', () => {
     const token = createSessionToken('admin', config.sessionSecret, 3600);
     authCookie = `${config.cookieName}=${token}`;
 
-    const categories = categoriesRepo.getAll();
+    const categories = await categoriesRepo.getAll();
     googleCat = categories.find((c) => c.name === 'Google');
     outlookCat = categories.find((c) => c.name === 'Outlook');
   });

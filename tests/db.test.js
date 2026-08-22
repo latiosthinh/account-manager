@@ -5,7 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { initDb, getDb, closeDb, categoriesRepo, accountsRepo } from '../src/db.js';
 
-test('DB in-memory initialization, pragmas, presets, and repos', (t) => {
+test('DB in-memory initialization, pragmas, presets, and repos', async (t) => {
   const db = initDb(':memory:');
 
   t.after(() => {
@@ -16,7 +16,7 @@ test('DB in-memory initialization, pragmas, presets, and repos', (t) => {
   assert.strictEqual(fkPragma.foreign_keys, 1, 'Foreign keys pragma must be enabled');
 
   // Check preset seeding
-  const presets = categoriesRepo.getAll();
+  const presets = await categoriesRepo.getAll();
   assert.strictEqual(presets.length, 2, 'Default presets Google and Outlook must exist');
   const names = presets.map((p) => p.name).sort();
   assert.deepStrictEqual(names, ['Google', 'Outlook']);
@@ -24,16 +24,16 @@ test('DB in-memory initialization, pragmas, presets, and repos', (t) => {
   assert.strictEqual(presets[1].is_preset, 1);
 
   // Category CRUD
-  const createdCat = categoriesRepo.create('Banking');
+  const createdCat = await categoriesRepo.create('Banking');
   assert.ok(createdCat.id);
   assert.strictEqual(createdCat.name, 'Banking');
   assert.strictEqual(createdCat.is_preset, 0);
 
-  const fetchedCat = categoriesRepo.getById(createdCat.id);
+  const fetchedCat = await categoriesRepo.getById(createdCat.id);
   assert.strictEqual(fetchedCat.name, 'Banking');
 
   // Account CRUD
-  const createdAcc = accountsRepo.create({
+  const createdAcc = await accountsRepo.create({
     category_id: createdCat.id,
     email: 'user@bank.com',
     password: 'secretPassword123',
@@ -44,16 +44,16 @@ test('DB in-memory initialization, pragmas, presets, and repos', (t) => {
   assert.strictEqual(createdAcc.password, 'secretPassword123');
   assert.strictEqual(createdAcc.notes, 'Primary debit account');
 
-  const fetchedAcc = accountsRepo.getById(createdAcc.id);
+  const fetchedAcc = await accountsRepo.getById(createdAcc.id);
   assert.strictEqual(fetchedAcc.email, 'user@bank.com');
   assert.strictEqual(fetchedAcc.category_name, 'Banking');
 
-  const byCat = accountsRepo.getByCategoryId(createdCat.id);
+  const byCat = await accountsRepo.getByCategoryId(createdCat.id);
   assert.strictEqual(byCat.length, 1);
   assert.strictEqual(byCat[0].id, createdAcc.id);
 
   // Account update
-  const updatedAcc = accountsRepo.update(createdAcc.id, {
+  const updatedAcc = await accountsRepo.update(createdAcc.id, {
     email: 'newuser@bank.com',
     password: 'updatedPassword',
     notes: 'Updated note',
@@ -63,28 +63,28 @@ test('DB in-memory initialization, pragmas, presets, and repos', (t) => {
   assert.strictEqual(updatedAcc.notes, 'Updated note');
 
   // Foreign key restriction check: Cannot delete category with linked accounts
-  assert.throws(() => {
-    categoriesRepo.delete(createdCat.id);
+  await assert.rejects(async () => {
+    await categoriesRepo.delete(createdCat.id);
   }, /FOREIGN KEY constraint failed/);
 
   // Delete account then category
-  const accDeleted = accountsRepo.delete(createdAcc.id);
+  const accDeleted = await accountsRepo.delete(createdAcc.id);
   assert.strictEqual(accDeleted, true);
-  assert.strictEqual(accountsRepo.getById(createdAcc.id), undefined);
+  assert.strictEqual(await accountsRepo.getById(createdAcc.id), undefined);
 
-  const catDeleted = categoriesRepo.delete(createdCat.id);
+  const catDeleted = await categoriesRepo.delete(createdCat.id);
   assert.strictEqual(catDeleted, true);
-  assert.strictEqual(categoriesRepo.getById(createdCat.id), undefined);
+  assert.strictEqual(await categoriesRepo.getById(createdCat.id), undefined);
 });
 
-test('Foreign key prevents inserting account with non-existent category_id', (t) => {
+test('Foreign key prevents inserting account with non-existent category_id', async (t) => {
   initDb(':memory:');
   t.after(() => {
     closeDb();
   });
 
-  assert.throws(() => {
-    accountsRepo.create({
+  await assert.rejects(async () => {
+    await accountsRepo.create({
       category_id: 'non-existent-cat-id',
       email: 'test@example.com',
       password: 'pwd',
@@ -92,7 +92,7 @@ test('Foreign key prevents inserting account with non-existent category_id', (t)
   }, /FOREIGN KEY constraint failed/);
 });
 
-test('File-based persistence across reconnects and directory creation', (t) => {
+test('File-based persistence across reconnects and directory creation', async (t) => {
   const tmpDir = path.join(os.tmpdir(), `acc-mgr-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
   const dbFilePath = path.join(tmpDir, 'nested', 'test.sqlite');
 
@@ -103,8 +103,8 @@ test('File-based persistence across reconnects and directory creation', (t) => {
   const walPragma = db1.prepare('PRAGMA journal_mode').get();
   assert.strictEqual(walPragma.journal_mode.toLowerCase(), 'wal', 'File db must use WAL journal mode');
 
-  const cat = categoriesRepo.create('Work');
-  const acc = accountsRepo.create({
+  const cat = await categoriesRepo.create('Work');
+  const acc = await accountsRepo.create({
     category_id: cat.id,
     email: 'work@corp.com',
     password: 'workpassword',
@@ -119,10 +119,10 @@ test('File-based persistence across reconnects and directory creation', (t) => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  const categories = categoriesRepo.getAll();
+  const categories = await categoriesRepo.getAll();
   assert.strictEqual(categories.length, 3, 'Google, Outlook, and Work categories should exist');
 
-  const loadedAcc = accountsRepo.getById(acc.id);
+  const loadedAcc = await accountsRepo.getById(acc.id);
   assert.ok(loadedAcc);
   assert.strictEqual(loadedAcc.email, 'work@corp.com');
   assert.strictEqual(loadedAcc.category_name, 'Work');
