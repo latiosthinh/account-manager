@@ -39,6 +39,7 @@ export function createApp() {
 }
 
 export const app = createApp();
+export default app;
 
 export function startServer(port = config.port, host = config.host, customApp = app) {
   // Initialize database

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Simple categorized account & credential manager with masked previews",
   "type": "module",
-  "main": "src/server.js",
+  "main": "api/index.js",
   "scripts": {
     "start": "node --env-file=.env src/server.js",
     "test": "node --test tests/**/*.test.js",
