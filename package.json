@@ -6,7 +6,11 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node --env-file=.env src/server.js",
-    "test": "node --test tests/**/*.test.js"
+    "test": "node --test tests/**/*.test.js",
+    "vercel-build": "mkdir -p public"
+  },
+  "engines": {
+    "node": ">=22.x"
   },
   "dependencies": {
     "cookie-parser": "^1.4.7",

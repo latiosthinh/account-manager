@@ -11,5 +11,5 @@ export const config = {
   cookieName: process.env.COOKIE_NAME || 'account_manager_session',
   maxFailedLogins: 5,
   lockoutWindowMs: 15 * 60 * 1000,
-  dbPath: process.env.DB_PATH || 'data/account-manager.sqlite',
+  dbPath: process.env.DB_PATH || (process.env.VERCEL ? '/tmp/account-manager.sqlite' : 'data/account-manager.sqlite'),
 };
