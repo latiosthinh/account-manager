@@ -4,12 +4,24 @@ import crypto from 'node:crypto';
 const devFallbackSecret = crypto.randomBytes(32).toString('hex');
 
 export const config = {
-  adminPassword: process.env.ADMIN_PASSWORD || 'admin',
-  sessionSecret: process.env.SESSION_SECRET || devFallbackSecret,
-  port: Number.parseInt(process.env.PORT || '3000', 10),
-  host: process.env.HOST || '0.0.0.0',
-  cookieName: process.env.COOKIE_NAME || 'account_manager_session',
+  get adminPassword() {
+    return process.env.ADMIN_PASSWORD || 'admin';
+  },
+  get sessionSecret() {
+    return process.env.SESSION_SECRET || devFallbackSecret;
+  },
+  get port() {
+    return Number.parseInt(process.env.PORT || '3000', 10);
+  },
+  get host() {
+    return process.env.HOST || '0.0.0.0';
+  },
+  get cookieName() {
+    return process.env.COOKIE_NAME || 'account_manager_session';
+  },
   maxFailedLogins: 5,
   lockoutWindowMs: 15 * 60 * 1000,
-  dbPath: process.env.DB_PATH || (process.env.VERCEL ? '/tmp/account-manager.sqlite' : 'data/account-manager.sqlite'),
+  get dbPath() {
+    return process.env.DB_PATH || (process.env.VERCEL ? '/tmp/account-manager.sqlite' : 'data/account-manager.sqlite');
+  },
 };

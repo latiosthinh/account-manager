@@ -5,12 +5,15 @@ export function verifyPassword(inputPassword, expectedPassword) {
   if (typeof inputPassword !== 'string' || typeof expectedPassword !== 'string') {
     return false;
   }
-  if (!inputPassword || !expectedPassword) {
+  const cleanInput = inputPassword.trim();
+  const cleanExpected = expectedPassword.trim();
+
+  if (!cleanInput || !cleanExpected) {
     return false;
   }
 
-  const inputHash = crypto.createHash('sha256').update(inputPassword, 'utf8').digest();
-  const expectedHash = crypto.createHash('sha256').update(expectedPassword, 'utf8').digest();
+  const inputHash = crypto.createHash('sha256').update(cleanInput, 'utf8').digest();
+  const expectedHash = crypto.createHash('sha256').update(cleanExpected, 'utf8').digest();
 
   return crypto.timingSafeEqual(inputHash, expectedHash);
 }
