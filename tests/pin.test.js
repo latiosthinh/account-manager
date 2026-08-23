@@ -66,7 +66,7 @@ test('PIN authentication integration test suite', async (t) => {
   assert.strictEqual(dataGoodPin.success, true);
   assert.strictEqual(dataGoodPin.message, 'PIN verified');
 
-  // 5. GET /api/auth/session reflects hasPin: true
+  // 5. GET /api/auth/session reflects hasPin: true and pinLength: 6
   const resSession = await fetch(`${baseUrl}/api/auth/session`, {
     headers: {
       'Cookie': `${config.cookieName}=${validSession}`,
@@ -75,6 +75,7 @@ test('PIN authentication integration test suite', async (t) => {
   const dataSession = await resSession.json();
   assert.strictEqual(dataSession.authenticated, true);
   assert.strictEqual(dataSession.hasPin, true);
+  assert.strictEqual(dataSession.pinLength, 6);
 
   delete process.env.PIN_CODE;
 });

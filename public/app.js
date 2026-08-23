@@ -72,6 +72,7 @@ if (isBrowser) {
   const state = {
     authenticated: false,
     hasPin: false,
+    pinLength: 4,
     pinUnlocked: false,
     categories: [],
     accounts: [],
@@ -156,15 +157,35 @@ if (isBrowser) {
     }
   }
 
+  function renderPinSquares() {
+    if (!el.pinDotsDisplay) return;
+    el.pinDotsDisplay.innerHTML = '';
+    const length = Math.max(1, state.pinLength || 4);
+    for (let i = 0; i < length; i++) {
+      const square = document.createElement('div');
+      square.className = 'pin-square';
+      const dot = document.createElement('span');
+      dot.className = 'pin-dot';
+      square.appendChild(dot);
+      el.pinDotsDisplay.appendChild(square);
+    }
+  }
+
   function updatePinDots() {
     if (!el.pinDotsDisplay || !el.pinInput) return;
-    const len = el.pinInput.value.length;
-    const dots = el.pinDotsDisplay.querySelectorAll('.pin-dot');
-    dots.forEach((dot, idx) => {
+    const val = el.pinInput.value;
+    const len = val.length;
+    const squares = el.pinDotsDisplay.querySelectorAll('.pin-square');
+    squares.forEach((sq, idx) => {
       if (idx < len) {
-        dot.classList.add('filled');
+        sq.classList.add('filled');
+        sq.classList.remove('current');
+      } else if (idx === len) {
+        sq.classList.remove('filled');
+        sq.classList.add('current');
       } else {
-        dot.classList.remove('filled');
+        sq.classList.remove('filled');
+        sq.classList.remove('current');
       }
     });
   }
@@ -182,11 +203,13 @@ if (isBrowser) {
     }
     if (el.pinInput) {
       el.pinInput.value = '';
+      el.pinInput.maxLength = state.pinLength || 12;
     }
     if (el.pinError) {
       el.pinError.classList.add('hidden');
       el.pinError.textContent = '';
     }
+    renderPinSquares();
     updatePinDots();
     openModal(el.pinModal);
     setTimeout(() => {
@@ -268,16 +291,19 @@ if (isBrowser) {
       if (data.authenticated) {
         state.authenticated = true;
         state.hasPin = Boolean(data.hasPin);
+        state.pinLength = Number(data.pinLength) || 4;
         await loadInitialData();
       } else {
         state.authenticated = false;
         state.hasPin = false;
         state.pinUnlocked = false;
+        state.pinLength = 4;
       }
     } catch {
       state.authenticated = false;
       state.hasPin = false;
       state.pinUnlocked = false;
+      state.pinLength = 4;
     }
     renderApp();
   }

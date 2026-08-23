@@ -68,6 +68,7 @@ authRouter.get('/status', (req, res) => {
   return res.json({
     authenticated: Boolean(session),
     hasPin: Boolean(config.pinCode),
+    pinLength: config.pinCode ? config.pinCode.length : 0,
   });
 });
 
@@ -78,6 +79,7 @@ authRouter.get('/session', (req, res) => {
   return res.json({
     authenticated: Boolean(session),
     hasPin: Boolean(config.pinCode),
+    pinLength: config.pinCode ? config.pinCode.length : 0,
   });
 });
 
