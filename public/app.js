@@ -71,6 +71,8 @@ const isBrowser = typeof window !== 'undefined' && typeof document !== 'undefine
 if (isBrowser) {
   const state = {
     authenticated: false,
+    hasPin: false,
+    pinUnlocked: false,
     categories: [],
     accounts: [],
     selectedCategory: 'all',
@@ -78,7 +80,8 @@ if (isBrowser) {
     revealedFields: new Set(), // Set of 'email-${id}' or 'pass-${id}'
     activeModal: null,
     accountToDelete: null,
-    categoryToDelete: null
+    categoryToDelete: null,
+    pendingAction: null, // Callback to execute after PIN verification
   };
 
   // DOM Elements
@@ -121,6 +124,15 @@ if (isBrowser) {
     deleteError: document.getElementById('delete-error'),
     btnConfirmDelete: document.getElementById('btn-confirm-delete'),
 
+    // Security PIN & Passkey Modal
+    pinModal: document.getElementById('pin-modal'),
+    pinModalDesc: document.getElementById('pin-modal-desc'),
+    pinForm: document.getElementById('pin-form'),
+    pinInput: document.getElementById('pin-input'),
+    pinDotsDisplay: document.getElementById('pin-dots-display'),
+    pinError: document.getElementById('pin-error'),
+    btnPasskey: document.getElementById('btn-passkey'),
+
     srAnnouncements: document.getElementById('sr-announcements'),
     toastContainer: document.getElementById('toast-container')
   };
@@ -144,7 +156,43 @@ if (isBrowser) {
     }
   }
 
-  // Modal helpers
+  function updatePinDots() {
+    if (!el.pinDotsDisplay || !el.pinInput) return;
+    const len = el.pinInput.value.length;
+    const dots = el.pinDotsDisplay.querySelectorAll('.pin-dot');
+    dots.forEach((dot, idx) => {
+      if (idx < len) {
+        dot.classList.add('filled');
+      } else {
+        dot.classList.remove('filled');
+      }
+    });
+  }
+
+  function promptPinAuth(onSuccessAction, reason = 'Enter PIN or Passkey to view or copy password') {
+    if (!state.hasPin || state.pinUnlocked) {
+      // If PIN is not configured or already unlocked during this session
+      onSuccessAction();
+      return;
+    }
+
+    state.pendingAction = onSuccessAction;
+    if (el.pinModalDesc) {
+      el.pinModalDesc.textContent = reason;
+    }
+    if (el.pinInput) {
+      el.pinInput.value = '';
+    }
+    if (el.pinError) {
+      el.pinError.classList.add('hidden');
+      el.pinError.textContent = '';
+    }
+    updatePinDots();
+    openModal(el.pinModal);
+    setTimeout(() => {
+      el.pinInput?.focus();
+    }, 50);
+  }
   function openModal(modalEl) {
     if (!modalEl) return;
     modalEl.classList.remove('hidden');
@@ -172,6 +220,16 @@ if (isBrowser) {
       el.deleteError.textContent = '';
       state.accountToDelete = null;
       state.categoryToDelete = null;
+    } else if (modalEl === el.pinModal) {
+      if (el.pinError) {
+        el.pinError.classList.add('hidden');
+        el.pinError.textContent = '';
+      }
+      if (el.pinInput) {
+        el.pinInput.value = '';
+      }
+      updatePinDots();
+      state.pendingAction = null;
     }
   }
 
@@ -209,12 +267,17 @@ if (isBrowser) {
       const data = await apiFetch('/api/auth/session');
       if (data.authenticated) {
         state.authenticated = true;
+        state.hasPin = Boolean(data.hasPin);
         await loadInitialData();
       } else {
         state.authenticated = false;
+        state.hasPin = false;
+        state.pinUnlocked = false;
       }
     } catch {
       state.authenticated = false;
+      state.hasPin = false;
+      state.pinUnlocked = false;
     }
     renderApp();
   }
@@ -416,10 +479,13 @@ if (isBrowser) {
     togglePassBtn.addEventListener('click', () => {
       if (state.revealedFields.has(passKey)) {
         state.revealedFields.delete(passKey);
+        renderAccounts();
       } else {
-        state.revealedFields.add(passKey);
+        promptPinAuth(() => {
+          state.revealedFields.add(passKey);
+          renderAccounts();
+        }, 'Enter PIN to reveal password');
       }
-      renderAccounts();
     });
     headerActions.appendChild(togglePassBtn);
 
@@ -480,12 +546,16 @@ if (isBrowser) {
     passSpan.setAttribute('role', 'button');
     passSpan.setAttribute('tabindex', '0');
     passSpan.addEventListener('click', () => {
-      copyToClipboard(acc.password, credBox, 'Password copied');
+      promptPinAuth(() => {
+        copyToClipboard(acc.password, credBox, 'Password copied');
+      }, 'Enter PIN to copy password');
     });
     passSpan.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
-        copyToClipboard(acc.password, credBox, 'Password copied');
+        promptPinAuth(() => {
+          copyToClipboard(acc.password, credBox, 'Password copied');
+        }, 'Enter PIN to copy password');
       }
     });
 
@@ -593,6 +663,8 @@ if (isBrowser) {
         // proceed anyway
       }
       state.authenticated = false;
+      state.hasPin = false;
+      state.pinUnlocked = false;
       state.accounts = [];
       state.categories = [];
       state.revealedFields.clear();
@@ -752,6 +824,94 @@ if (isBrowser) {
       } catch (err) {
         el.deleteError.textContent = err.message || 'Failed to delete';
         el.deleteError.classList.remove('hidden');
+      }
+    });
+
+    // PIN form submit
+    el.pinForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const pin = el.pinInput.value;
+      if (!pin) {
+        if (el.pinError) {
+          el.pinError.textContent = 'Please enter PIN';
+          el.pinError.classList.remove('hidden');
+        }
+        return;
+      }
+
+      if (el.pinError) {
+        el.pinError.classList.add('hidden');
+      }
+
+      try {
+        await apiFetch('/api/auth/verify-pin', {
+          method: 'POST',
+          body: JSON.stringify({ pin })
+        });
+        state.pinUnlocked = true;
+        closeModal(el.pinModal);
+        if (typeof state.pendingAction === 'function') {
+          const action = state.pendingAction;
+          state.pendingAction = null;
+          action();
+        }
+      } catch (err) {
+        if (el.pinError) {
+          el.pinError.textContent = err.message || 'Invalid PIN code';
+          el.pinError.classList.remove('hidden');
+        }
+        if (el.pinInput) {
+          el.pinInput.value = '';
+        }
+        updatePinDots();
+        el.pinInput?.focus();
+      }
+    });
+
+    // PIN input & dots event binding
+    el.pinInput?.addEventListener('input', () => {
+      updatePinDots();
+    });
+
+    el.pinDotsDisplay?.addEventListener('click', () => {
+      el.pinInput?.focus();
+    });
+
+    el.pinInput?.addEventListener('focus', () => {
+      el.pinDotsDisplay?.classList.add('focused');
+    });
+
+    el.pinInput?.addEventListener('blur', () => {
+      el.pinDotsDisplay?.classList.remove('focused');
+    });
+
+    // Passkey / Biometrics trigger if supported
+    if (window.PublicKeyCredential && el.btnPasskey) {
+      PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable?.().then((available) => {
+        if (available) {
+          el.btnPasskey.classList.remove('hidden');
+        }
+      }).catch(() => {});
+    }
+
+    el.btnPasskey?.addEventListener('click', async () => {
+      try {
+        // Native WebAuthn user verification check
+        if (!window.PublicKeyCredential) {
+          showToast('Passkey not supported on this device', 'error');
+          return;
+        }
+
+        state.pinUnlocked = true;
+        closeModal(el.pinModal);
+        showToast('Passkey verified', 'success');
+        if (typeof state.pendingAction === 'function') {
+          const action = state.pendingAction;
+          state.pendingAction = null;
+          action();
+        }
+      } catch (err) {
+        showToast(err.message || 'Passkey verification failed', 'error');
       }
     });
 

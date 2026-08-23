@@ -7,6 +7,9 @@ export const config = {
   get adminPassword() {
     return process.env.ADMIN_PASSWORD || 'admin';
   },
+  get pinCode() {
+    return process.env.PIN_CODE || process.env.PIN || '';
+  },
   get sessionSecret() {
     return process.env.SESSION_SECRET || devFallbackSecret;
   },

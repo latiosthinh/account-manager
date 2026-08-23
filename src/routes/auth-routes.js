@@ -5,6 +5,7 @@ import { LoginRateLimiter } from '../rate-limiter.js';
 
 export const authRouter = Router();
 const limiter = new LoginRateLimiter(config.maxFailedLogins, config.lockoutWindowMs);
+const pinLimiter = new LoginRateLimiter(config.maxFailedLogins, config.lockoutWindowMs);
 
 function getClientIp(req) {
   const forwarded = req.headers['x-forwarded-for'];
@@ -64,12 +65,61 @@ authRouter.post('/logout', (req, res) => {
 authRouter.get('/status', (req, res) => {
   const token = req.cookies?.[config.cookieName];
   const session = verifySessionToken(token, config.sessionSecret);
-  return res.json({ authenticated: Boolean(session) });
+  return res.json({
+    authenticated: Boolean(session),
+    hasPin: Boolean(config.pinCode),
+  });
 });
 
 // Alias for frontend session check
 authRouter.get('/session', (req, res) => {
   const token = req.cookies?.[config.cookieName];
   const session = verifySessionToken(token, config.sessionSecret);
-  return res.json({ authenticated: Boolean(session) });
+  return res.json({
+    authenticated: Boolean(session),
+    hasPin: Boolean(config.pinCode),
+  });
+});
+
+// Verify PIN code for revealing/copying passwords
+authRouter.post('/verify-pin', (req, res) => {
+  const token = req.cookies?.[config.cookieName];
+  const session = verifySessionToken(token, config.sessionSecret);
+  if (!session) {
+    return res.status(401).json({ error: 'Unauthorized. Please log in first.' });
+  }
+
+  // If no PIN_CODE is configured in .env, accept by default
+  if (!config.pinCode) {
+    return res.json({ success: true, message: 'No PIN configured' });
+  }
+
+  const ip = getClientIp(req);
+  if (pinLimiter.isRateLimited(ip)) {
+    const retryAfter = pinLimiter.getRetryAfterSeconds(ip);
+    res.set('Retry-After', String(retryAfter));
+    return res.status(429).json({
+      error: 'Too many failed PIN attempts. Please try again later.',
+      retryAfter,
+    });
+  }
+
+  const { pin } = req.body || {};
+  const isValid = verifyPassword(String(pin || ''), config.pinCode);
+
+  if (!isValid) {
+    pinLimiter.recordFailure(ip);
+    if (pinLimiter.isRateLimited(ip)) {
+      const retryAfter = pinLimiter.getRetryAfterSeconds(ip);
+      res.set('Retry-After', String(retryAfter));
+      return res.status(429).json({
+        error: 'Too many failed PIN attempts. Please try again later.',
+        retryAfter,
+      });
+    }
+    return res.status(401).json({ error: 'Invalid PIN code' });
+  }
+
+  pinLimiter.reset(ip);
+  return res.json({ success: true, message: 'PIN verified' });
 });

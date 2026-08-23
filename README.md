@@ -6,15 +6,17 @@ A lightweight, secure, and private account & credential manager with categorized
 
 ## Features
 
-- **🛡️ Admin Password Protection**: Verified with timing-safe constant comparison (`crypto.timingSafeEqual`) and brute-force sliding-window rate limiting.
+- **🛡️ Admin Password & PIN Protection**:
+  - Vault access protected with master `ADMIN_PASSWORD` (timing-safe verification, sliding-window rate limiting).
+  - Optional secondary `PIN_CODE` (or Passkey / Biometrics) challenge before revealing or copying passwords.
 - **📂 Categorized Vault**: Default presets (`Google`, `Outlook`) and full custom category creation with delete protection for active records.
 - **👁️ Safe-by-Default Masking**:
   - Email addresses are masked by default (e.g. `thinh***@gmail.com`).
   - Passwords are masked by default (`••••••••`).
-  - Click directly on masked/revealed email or password to copy to clipboard with a visual feedback badge.
+  - Click directly on masked/revealed email or password to copy to clipboard with a visual feedback badge (triggers PIN/Passkey challenge for passwords).
   - Dedicated header actions to toggle visibility:
     - 👁️ **Eye Icon**: Reveal / hide username & email.
-    - 🔓 **Lock / Unlock Icon**: Reveal / hide password.
+    - 🔓 **Lock / Unlock Icon**: Reveal / hide password (triggers PIN/Passkey challenge).
 - **🔍 Real-Time Search & Filtering**: Instant search across emails, categories, and notes. Category tab filters with live count badges.
 - **💾 Zero-Config SQLite Storage**: Built using Node.js native `node:sqlite` in WAL mode for persistent, zero-dependency storage.
 
@@ -31,6 +33,7 @@ Create a `.env` file in the project root:
 
 ```bash
 ADMIN_PASSWORD=your_secure_admin_password
+PIN_CODE=123456
 SESSION_SECRET=a_long_random_session_secret_key
 PORT=3000
 HOST=0.0.0.0

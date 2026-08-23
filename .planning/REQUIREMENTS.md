@@ -14,6 +14,13 @@ Requirements for Milestone v1.0. Each maps directly to roadmap phases.
 - [x] **AUTH-03**: System manages authenticated session via secure, signed `HttpOnly` cookie with logout capability
 - [x] **AUTH-04**: System rate-limits failed login attempts to prevent brute-force attacks
 
+### Step-up Security (v1.1 / Phase 5)
+
+- [ ] **AUTH-05**: User can configure an optional or required numeric PIN or WebAuthn / Passkey credential for unlocking sensitive actions
+- [ ] **AUTH-06**: System validates PIN with timing-safe comparison and rate-limiting on verify endpoint
+- [ ] **AUTH-07**: System issues short-lived step-up token / grant (e.g. 5-15 minutes or per-action) allowing password reveal and password copy
+- [ ] **AUTH-08**: Frontend intercepts password reveal (eye icon) and password copy buttons to prompt for PIN / Passkey if step-up authorization is not active, while email reveal and copy remain unhindered
+
 ### Category Management
 
 - [x] **CATG-01**: System seeds default preset categories (`Google`, `Outlook`) on initial startup
@@ -85,12 +92,12 @@ Deferred to future releases.
 | MASK-04 | Phase 4 | Complete |
 | VIEW-01 | Phase 4 | Complete |
 | VIEW-02 | Phase 4 | Complete |
+| AUTH-05 | Phase 5 | Pending |
+| AUTH-06 | Phase 5 | Pending |
+| AUTH-07 | Phase 5 | Pending |
+| AUTH-08 | Phase 5 | Pending |
 
 **Coverage:**
-- v1 requirements: 18 total
-- Mapped to phases: 18
+- Active requirements: 22 total
+- Mapped to phases: 22
 - Unmapped: 0 ✓
-
----
-*Requirements defined: 2026-08-22*
-*Last updated: 2026-08-22 after Phase 4 completion*
