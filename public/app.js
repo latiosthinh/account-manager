@@ -853,9 +853,8 @@ if (isBrowser) {
       }
     });
 
-    // PIN form submit
-    el.pinForm?.addEventListener('submit', async (e) => {
-      e.preventDefault();
+    // PIN submission logic
+    async function submitPinVerification() {
       const pin = el.pinInput.value;
       if (!pin) {
         if (el.pinError) {
@@ -892,11 +891,22 @@ if (isBrowser) {
         updatePinDots();
         el.pinInput?.focus();
       }
+    }
+
+    // PIN form submit
+    el.pinForm?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      submitPinVerification();
     });
 
-    // PIN input & dots event binding
+    // PIN input & dots event binding with auto-verify on full length
     el.pinInput?.addEventListener('input', () => {
       updatePinDots();
+      const currentLength = el.pinInput.value.length;
+      const expectedLength = state.pinLength || 4;
+      if (currentLength >= expectedLength) {
+        submitPinVerification();
+      }
     });
 
     el.pinDotsDisplay?.addEventListener('click', () => {
