@@ -266,7 +266,7 @@ if (isBrowser) {
       }
     });
 
-    if (res.status === 401 && !url.includes('/api/auth/session') && !url.includes('/api/auth/login')) {
+    if (res.status === 401 && !url.includes('/api/auth/session') && !url.includes('/api/auth/login') && !url.includes('/api/auth/verify-pin')) {
       // Unauthenticated, force login view
       state.authenticated = false;
       state.accounts = [];
