@@ -444,6 +444,9 @@ if (isBrowser) {
     const isEmailRevealed = state.revealedFields.has(emailKey);
     const isPassRevealed = state.revealedFields.has(passKey);
 
+    const hasEmail = Boolean(acc.email && acc.email.trim());
+    const hasPassword = Boolean(acc.password);
+
     const emailDisplay = isEmailRevealed ? acc.email : maskEmail(acc.email);
     const passDisplay = isPassRevealed ? acc.password : maskPassword(acc.password);
 
@@ -478,48 +481,52 @@ if (isBrowser) {
     const headerActions = document.createElement('div');
     headerActions.className = 'card-actions';
 
-    // 1. Reveal Username / Email button (Eye Icon)
-    const toggleEmailBtn = document.createElement('button');
-    toggleEmailBtn.type = 'button';
-    toggleEmailBtn.className = `btn-icon btn-action-icon ${isEmailRevealed ? 'active' : ''}`;
-    toggleEmailBtn.setAttribute('aria-label', isEmailRevealed ? 'Hide username' : 'Reveal username');
-    toggleEmailBtn.title = isEmailRevealed ? 'Hide username' : 'Reveal username';
-    toggleEmailBtn.innerHTML = `<svg class="icon"><use href="${isEmailRevealed ? '#icon-eye-off' : '#icon-eye'}"></use></svg>`;
-    toggleEmailBtn.addEventListener('click', () => {
-      if (state.revealedFields.has(emailKey)) {
-        state.revealedFields.delete(emailKey);
-      } else {
-        state.revealedFields.add(emailKey);
-      }
-      renderAccounts();
-    });
-    headerActions.appendChild(toggleEmailBtn);
-
-    // 2. Reveal Password button (Lock/Unlock Icon)
-    const togglePassBtn = document.createElement('button');
-    togglePassBtn.type = 'button';
-    togglePassBtn.className = `btn-icon btn-action-icon ${isPassRevealed ? 'active' : ''}`;
-    togglePassBtn.setAttribute('aria-label', isPassRevealed ? 'Hide password' : 'Reveal password');
-    togglePassBtn.title = isPassRevealed ? 'Hide password' : 'Reveal password';
-    togglePassBtn.innerHTML = `<svg class="icon"><use href="${isPassRevealed ? '#icon-unlock' : '#icon-lock'}"></use></svg>`;
-    togglePassBtn.addEventListener('click', () => {
-      if (state.revealedFields.has(passKey)) {
-        state.revealedFields.delete(passKey);
+    // 1. Reveal Username / Email button (Eye Icon) - only if email exists
+    if (hasEmail) {
+      const toggleEmailBtn = document.createElement('button');
+      toggleEmailBtn.type = 'button';
+      toggleEmailBtn.className = `btn-icon btn-action-icon ${isEmailRevealed ? 'active' : ''}`;
+      toggleEmailBtn.setAttribute('aria-label', isEmailRevealed ? 'Hide identifier' : 'Reveal identifier');
+      toggleEmailBtn.title = isEmailRevealed ? 'Hide identifier' : 'Reveal identifier';
+      toggleEmailBtn.innerHTML = `<svg class="icon"><use href="${isEmailRevealed ? '#icon-eye-off' : '#icon-eye'}"></use></svg>`;
+      toggleEmailBtn.addEventListener('click', () => {
+        if (state.revealedFields.has(emailKey)) {
+          state.revealedFields.delete(emailKey);
+        } else {
+          state.revealedFields.add(emailKey);
+        }
         renderAccounts();
-      } else {
-        promptPinAuth(() => {
-          state.revealedFields.add(passKey);
+      });
+      headerActions.appendChild(toggleEmailBtn);
+    }
+
+    // 2. Reveal Password / Secret / Command button (Lock/Unlock Icon) - only if password/secret exists
+    if (hasPassword) {
+      const togglePassBtn = document.createElement('button');
+      togglePassBtn.type = 'button';
+      togglePassBtn.className = `btn-icon btn-action-icon ${isPassRevealed ? 'active' : ''}`;
+      togglePassBtn.setAttribute('aria-label', isPassRevealed ? 'Hide secret/command' : 'Reveal secret/command');
+      togglePassBtn.title = isPassRevealed ? 'Hide secret/command' : 'Reveal secret/command';
+      togglePassBtn.innerHTML = `<svg class="icon"><use href="${isPassRevealed ? '#icon-unlock' : '#icon-lock'}"></use></svg>`;
+      togglePassBtn.addEventListener('click', () => {
+        if (state.revealedFields.has(passKey)) {
+          state.revealedFields.delete(passKey);
           renderAccounts();
-        }, 'Enter PIN to reveal password');
-      }
-    });
-    headerActions.appendChild(togglePassBtn);
+        } else {
+          promptPinAuth(() => {
+            state.revealedFields.add(passKey);
+            renderAccounts();
+          }, 'Enter PIN to reveal secret/command');
+        }
+      });
+      headerActions.appendChild(togglePassBtn);
+    }
 
     const editBtn = document.createElement('button');
     editBtn.type = 'button';
     editBtn.className = 'btn-icon btn-action-icon';
-    editBtn.setAttribute('aria-label', `Edit account ${acc.email}`);
-    editBtn.title = 'Edit account';
+    editBtn.setAttribute('aria-label', `Edit account ${acc.email || acc.categoryName}`);
+    editBtn.title = 'Edit item';
     editBtn.innerHTML = `<svg class="icon"><use href="#icon-edit"></use></svg>`;
     editBtn.addEventListener('click', () => promptEditAccount(acc));
     headerActions.appendChild(editBtn);
@@ -527,8 +534,8 @@ if (isBrowser) {
     const deleteBtn = document.createElement('button');
     deleteBtn.type = 'button';
     deleteBtn.className = 'btn-icon btn-action-icon';
-    deleteBtn.setAttribute('aria-label', `Delete account ${acc.email}`);
-    deleteBtn.title = 'Delete account';
+    deleteBtn.setAttribute('aria-label', `Delete account ${acc.email || acc.categoryName}`);
+    deleteBtn.title = 'Delete item';
     deleteBtn.innerHTML = `<svg class="icon"><use href="#icon-trash"></use></svg>`;
     deleteBtn.addEventListener('click', () => promptDeleteAccount(acc));
     headerActions.appendChild(deleteBtn);
@@ -536,62 +543,68 @@ if (isBrowser) {
     cardHeader.appendChild(headerActions);
     card.appendChild(cardHeader);
 
-    // Card Credential Box with Inline Row: email***@gmail.com / ******
+    // Card Credential Box with Inline Row
     const credBox = document.createElement('div');
     credBox.className = 'credential-box';
 
     const credRow = document.createElement('div');
     credRow.className = 'credential-inline-row';
 
-    // Clickable Email chunk
-    const emailSpan = document.createElement('span');
-    emailSpan.className = 'clickable-credential email-val';
-    emailSpan.textContent = emailDisplay;
-    emailSpan.title = 'Click to copy email';
-    emailSpan.setAttribute('role', 'button');
-    emailSpan.setAttribute('tabindex', '0');
-    emailSpan.addEventListener('click', () => {
-      copyToClipboard(acc.email, credBox, 'Email copied');
-    });
-    emailSpan.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        copyToClipboard(acc.email, credBox, 'Email copied');
-      }
-    });
-
-    const slashSpan = document.createElement('span');
-    slashSpan.className = 'credential-separator';
-    slashSpan.textContent = ' / ';
-
-    // Clickable Password chunk
-    const passSpan = document.createElement('span');
-    passSpan.className = 'clickable-credential pass-val';
-    passSpan.textContent = passDisplay;
-    passSpan.title = 'Click to copy password';
-    passSpan.setAttribute('role', 'button');
-    passSpan.setAttribute('tabindex', '0');
-    passSpan.addEventListener('click', () => {
-      promptPinAuth(() => {
-        copyToClipboard(acc.password, credBox, 'Password copied');
-      }, 'Enter PIN to copy password');
-    });
-    passSpan.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        promptPinAuth(() => {
-          copyToClipboard(acc.password, credBox, 'Password copied');
-        }, 'Enter PIN to copy password');
-      }
-    });
-
     const credValues = document.createElement('div');
     credValues.className = 'credential-values';
-    credValues.appendChild(emailSpan);
-    credValues.appendChild(slashSpan);
-    credValues.appendChild(passSpan);
-    credRow.appendChild(credValues);
 
+    // Clickable Email/Identifier chunk
+    if (hasEmail) {
+      const emailSpan = document.createElement('span');
+      emailSpan.className = 'clickable-credential email-val';
+      emailSpan.textContent = emailDisplay;
+      emailSpan.title = 'Click to copy identifier';
+      emailSpan.setAttribute('role', 'button');
+      emailSpan.setAttribute('tabindex', '0');
+      emailSpan.addEventListener('click', () => {
+        copyToClipboard(acc.email, credBox, 'Identifier copied');
+      });
+      emailSpan.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          copyToClipboard(acc.email, credBox, 'Identifier copied');
+        }
+      });
+      credValues.appendChild(emailSpan);
+    }
+
+    if (hasEmail && hasPassword) {
+      const slashSpan = document.createElement('span');
+      slashSpan.className = 'credential-separator';
+      slashSpan.textContent = ' / ';
+      credValues.appendChild(slashSpan);
+    }
+
+    // Clickable Password/API Key/Command chunk
+    if (hasPassword) {
+      const passSpan = document.createElement('span');
+      passSpan.className = 'clickable-credential pass-val';
+      passSpan.textContent = passDisplay;
+      passSpan.title = 'Click to copy secret / command';
+      passSpan.setAttribute('role', 'button');
+      passSpan.setAttribute('tabindex', '0');
+      passSpan.addEventListener('click', () => {
+        promptPinAuth(() => {
+          copyToClipboard(acc.password, credBox, 'Secret/command copied');
+        }, 'Enter PIN to copy secret/command');
+      });
+      passSpan.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          promptPinAuth(() => {
+            copyToClipboard(acc.password, credBox, 'Secret/command copied');
+          }, 'Enter PIN to copy secret/command');
+        }
+      });
+      credValues.appendChild(passSpan);
+    }
+
+    credRow.appendChild(credValues);
     credBox.appendChild(credRow);
     card.appendChild(credBox);
 

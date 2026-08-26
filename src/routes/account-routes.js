@@ -23,12 +23,20 @@ accountRouter.get('/', async (req, res) => {
 accountRouter.post('/', async (req, res) => {
   const { email, password, categoryId, notes } = req.body || {};
 
-  if (typeof email !== 'string' || email.trim() === '' || email.trim().length > 255) {
-    return res.status(400).json({ error: 'Valid email is required (1-255 characters)' });
+  const cleanEmail = typeof email === 'string' ? email.trim() : '';
+  const cleanPassword = typeof password === 'string' ? password : '';
+
+  // At least one of email or password/secret must be present
+  if (!cleanEmail && !cleanPassword) {
+    return res.status(400).json({ error: 'Either email/identifier or password/secret/command is required' });
   }
 
-  if (typeof password !== 'string' || password === '' || password.length > 500) {
-    return res.status(400).json({ error: 'Valid password is required (1-500 characters)' });
+  if (cleanEmail.length > 255) {
+    return res.status(400).json({ error: 'Identifier must be up to 255 characters' });
+  }
+
+  if (cleanPassword.length > 2000) {
+    return res.status(400).json({ error: 'Password / API key / command must be up to 2000 characters' });
   }
 
   if (typeof categoryId !== 'string' || categoryId.trim() === '') {
@@ -50,8 +58,8 @@ accountRouter.post('/', async (req, res) => {
 
   const created = await accountsRepo.create({
     category_id: categoryId.trim(),
-    email: email.trim(),
-    password,
+    email: cleanEmail,
+    password: cleanPassword,
     notes: formattedNotes,
   });
 
@@ -71,15 +79,15 @@ accountRouter.put('/:id', async (req, res) => {
   const updates = {};
 
   if (email !== undefined) {
-    if (typeof email !== 'string' || email.trim() === '' || email.trim().length > 255) {
-      return res.status(400).json({ error: 'Valid email is required (1-255 characters)' });
+    if (typeof email !== 'string' || email.trim().length > 255) {
+      return res.status(400).json({ error: 'Identifier must be up to 255 characters' });
     }
     updates.email = email.trim();
   }
 
   if (password !== undefined) {
-    if (typeof password !== 'string' || password === '' || password.length > 500) {
-      return res.status(400).json({ error: 'Valid password is required (1-500 characters)' });
+    if (typeof password !== 'string' || password.length > 2000) {
+      return res.status(400).json({ error: 'Password / API key / command must be up to 2000 characters' });
     }
     updates.password = password;
   }

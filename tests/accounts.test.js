@@ -85,36 +85,42 @@ describe('Account API integration test suite', () => {
     assert.ok(created.updated_at);
   });
 
+  test('POST /api/accounts with only password (API key / command) creates item (201)', async () => {
+    const res = await fetch(`${baseUrl}/api/accounts`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: authCookie,
+      },
+      body: JSON.stringify({
+        password: 'export OPENAI_API_KEY=sk-test-123456',
+        categoryId: googleCat.id,
+        notes: 'API token environment export',
+      }),
+    });
+
+    assert.equal(res.status, 201);
+    const created = await res.json();
+    assert.ok(created.id);
+    assert.equal(created.email, '');
+    assert.equal(created.password, 'export OPENAI_API_KEY=sk-test-123456');
+    assert.equal(created.category_id, googleCat.id);
+  });
+
   test('POST /api/accounts validation errors (400)', async () => {
-    // Missing email
+    // Both missing
     let res = await fetch(`${baseUrl}/api/accounts`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Cookie: authCookie },
-      body: JSON.stringify({ password: '123', categoryId: googleCat.id }),
+      body: JSON.stringify({ categoryId: googleCat.id }),
     });
     assert.equal(res.status, 400);
 
-    // Empty email
+    // Both empty
     res = await fetch(`${baseUrl}/api/accounts`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Cookie: authCookie },
-      body: JSON.stringify({ email: '   ', password: '123', categoryId: googleCat.id }),
-    });
-    assert.equal(res.status, 400);
-
-    // Missing password
-    res = await fetch(`${baseUrl}/api/accounts`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Cookie: authCookie },
-      body: JSON.stringify({ email: 'test@b.com', categoryId: googleCat.id }),
-    });
-    assert.equal(res.status, 400);
-
-    // Empty password
-    res = await fetch(`${baseUrl}/api/accounts`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Cookie: authCookie },
-      body: JSON.stringify({ email: 'test@b.com', password: '', categoryId: googleCat.id }),
+      body: JSON.stringify({ email: '   ', password: '', categoryId: googleCat.id }),
     });
     assert.equal(res.status, 400);
 

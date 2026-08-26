@@ -9,7 +9,9 @@ A lightweight, secure, and private account & credential manager with categorized
 - **🛡️ Admin Password & PIN Protection**:
   - Vault access protected with master `ADMIN_PASSWORD` (timing-safe verification, sliding-window rate limiting).
   - Optional secondary `PIN_CODE` (or Passkey / Biometrics) challenge before revealing or copying passwords.
-- **📂 Categorized Vault**: Default presets (`Google`, `Outlook`) and full custom category creation with delete protection for active records.
+- **📂 Flexible Categorized Vault**:
+  - Store full account pairs (email + password), API keys only, or CLI commands/secrets.
+  - Default presets (`Google`, `Outlook`) and custom categories with delete protection for active records.
 - **👁️ Safe-by-Default Masking**:
   - Email addresses are masked by default (e.g. `thinh***@gmail.com`).
   - Passwords are masked by default (`••••••••`).
