@@ -522,6 +522,31 @@ if (isBrowser) {
       headerActions.appendChild(togglePassBtn);
     }
 
+    // Notes block with Info icon button and CSS tooltip
+    if (acc.notes && acc.notes.trim()) {
+      const infoWrap = document.createElement('div');
+      infoWrap.className = 'info-tooltip-wrapper';
+
+      const infoBtn = document.createElement('button');
+      infoBtn.type = 'button';
+      infoBtn.className = 'btn-icon btn-action-icon btn-info-notes';
+      infoBtn.setAttribute('aria-label', 'View account notes');
+      infoBtn.innerHTML = `<svg class="icon"><use href="#icon-info"></use></svg>`;
+      infoBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        infoWrap.classList.toggle('active');
+      });
+
+      const tooltip = document.createElement('div');
+      tooltip.className = 'custom-tooltip';
+      tooltip.setAttribute('role', 'tooltip');
+      tooltip.textContent = acc.notes;
+
+      infoWrap.appendChild(infoBtn);
+      infoWrap.appendChild(tooltip);
+      headerActions.appendChild(infoWrap);
+    }
+
     const editBtn = document.createElement('button');
     editBtn.type = 'button';
     editBtn.className = 'btn-icon btn-action-icon';
@@ -607,14 +632,6 @@ if (isBrowser) {
     credRow.appendChild(credValues);
     credBox.appendChild(credRow);
     card.appendChild(credBox);
-
-    // Notes block (if present)
-    if (acc.notes && acc.notes.trim()) {
-      const notesBlock = document.createElement('div');
-      notesBlock.className = 'card-notes';
-      notesBlock.textContent = acc.notes;
-      card.appendChild(notesBlock);
-    }
 
     return card;
   }
@@ -971,6 +988,7 @@ if (isBrowser) {
         el.searchInput?.focus();
         el.searchInput?.select();
       } else if (e.key === 'Escape') {
+        document.querySelectorAll('.info-tooltip-wrapper.active').forEach(w => w.classList.remove('active'));
         if (state.activeModal) {
           closeModal(state.activeModal);
         } else if (document.activeElement === el.searchInput && el.searchInput.value) {
@@ -979,6 +997,13 @@ if (isBrowser) {
           el.searchClearBtn?.classList.add('hidden');
           renderAccounts();
         }
+      }
+    });
+
+    // Close open tooltips when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.info-tooltip-wrapper')) {
+        document.querySelectorAll('.info-tooltip-wrapper.active').forEach(w => w.classList.remove('active'));
       }
     });
   }
