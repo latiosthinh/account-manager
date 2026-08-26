@@ -539,8 +539,22 @@ if (isBrowser) {
 
       const tooltip = document.createElement('div');
       tooltip.className = 'custom-tooltip';
-      tooltip.setAttribute('role', 'tooltip');
-      tooltip.textContent = acc.notes;
+      tooltip.setAttribute('role', 'button');
+      tooltip.setAttribute('tabindex', '0');
+      tooltip.setAttribute('aria-label', 'Click to copy notes');
+      tooltip.title = 'Click to copy notes';
+      tooltip.textContent = acc.notes.replace(/\r?\n/g, ' ');
+      tooltip.addEventListener('click', (e) => {
+        e.stopPropagation();
+        copyToClipboard(acc.notes, infoWrap, 'Notes copied');
+      });
+      tooltip.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          e.stopPropagation();
+          copyToClipboard(acc.notes, infoWrap, 'Notes copied');
+        }
+      });
 
       infoWrap.appendChild(infoBtn);
       infoWrap.appendChild(tooltip);
